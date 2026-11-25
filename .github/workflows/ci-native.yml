@@ -1,0 +1,49 @@
+name: Flask CI Pipeline
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Initialize SQLite Database
+      run: |
+        python manage.py db upgrade
+        
+        ls -la todo.sqlite
+
+    - name: Smoke test Flask server
+      run: |
+        python manage.py runserver &
+        
+        echo "Waiting for Flask server to start on port 7345..."
+        for i in {1..10}; do
+          if curl -s -f http://127.0.0.1:7345/ > /dev/null; then
+            echo "Success! Server responding."
+            curl -I http://127.0.0.1:7345/
+            exit 0
+          fi
+          echo "Attempt $i/10: Server not ready"
+          sleep 1
+        done
+        
+        echo "Error: Server failed to start within 10 seconds."
+        exit 1
