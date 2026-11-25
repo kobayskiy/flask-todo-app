@@ -26,8 +26,7 @@ jobs:
 
     - name: Initialize SQLite Database
       run: |
-        python manage.py db upgrade
-        
+        python -c "from application import create_app; from application.extensions import db; app = create_app('default'); app.app_context().push(); db.create_all()"
         ls -la todo.sqlite
 
     - name: Smoke test Flask server
